@@ -1,0 +1,489 @@
+{
+  "info": {
+    "name": "Hungry Foodicsers API",
+    "description": "API collection for Foodics office food ordering app",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "officeId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "orderId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "itemId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"test@foodics.com\",\n  \"password\": \"password123\",\n  \"office\": \"{{officeId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.token) {",
+                  "        pm.collectionVariables.set('token', jsonData.data.token);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ahmed@foodics.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "Update Firebase Token",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"YOUR_FIREBASE_FCM_TOKEN_HERE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/firebase-token",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "firebase-token"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Offices",
+      "item": [
+        {
+          "name": "Get All Offices",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/offices",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "offices"]
+            }
+          }
+        },
+        {
+          "name": "Get Office by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/offices/{{officeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "offices", "{{officeId}}"]
+            }
+          }
+        },
+        {
+          "name": "Create Office",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Office\",\n  \"location\": \"Location\",\n  \"city\": \"City\",\n  \"country\": \"Country\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/offices",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "offices"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get Users in Office",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/office/{{officeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "office", "{{officeId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", ":id"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Create Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.order && jsonData.data.order._id) {",
+                  "        pm.collectionVariables.set('orderId', jsonData.data.order._id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"restaurant\": \"KFC\",\n  \"restaurantPhone\": \"+201234567890\",\n  \"notes\": \"Please be quick!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders"]
+            }
+          }
+        },
+        {
+          "name": "Get All Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders"]
+            }
+          }
+        },
+        {
+          "name": "Get Orders by Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders?status=open",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "open"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Order by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{orderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "{{orderId}}"]
+            }
+          }
+        },
+        {
+          "name": "Add Item to Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.item && jsonData.data.item._id) {",
+                  "        pm.collectionVariables.set('itemId', jsonData.data.item._id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Chicken Bucket\",\n  \"quantity\": 2,\n  \"notes\": \"Extra spicy please\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{orderId}}/items",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "{{orderId}}", "items"]
+            }
+          }
+        },
+        {
+          "name": "Update Item Price",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 150.50\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{orderId}}/items/{{itemId}}/price",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "{{orderId}}", "items", "{{itemId}}", "price"]
+            }
+          }
+        },
+        {
+          "name": "Update Order Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ordered\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{orderId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "{{orderId}}", "status"]
+            }
+          }
+        },
+        {
+          "name": "Mark Order as Delivered",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"delivered\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{orderId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "{{orderId}}", "status"]
+            }
+          }
+        },
+        {
+          "name": "Remove Item from Order",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{orderId}}/items/{{itemId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "{{orderId}}", "items", "{{itemId}}"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
