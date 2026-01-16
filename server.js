@@ -21,7 +21,13 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', message: 'Hungry Foodicsers API is running' });
 });
 
-// MongoDB connection
+// Start server first (so Railway knows it's running)
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
+
+// MongoDB connection (non-blocking - server starts even if DB fails initially)
 mongoose
   .connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/hungry-foodicsers', {
     useNewUrlParser: true,
@@ -29,16 +35,12 @@ mongoose
   })
   .then(() => {
     console.log('✅ Connected to MongoDB');
-    
-    // Start server
-    const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-    });
   })
   .catch((error) => {
-    console.error('❌ MongoDB connection error:', error);
-    process.exit(1);
+    console.error('❌ MongoDB connection error:', error.message);
+    console.error('⚠️  Server is running but database connection failed');
+    console.error('⚠️  Check MONGODB_URI environment variable');
+    // Don't exit - let server run so we can see the error
   });
 
 // Error handling middleware
