@@ -48,6 +48,12 @@ const orderSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    // Link to order group if created from a recurring group
+    orderGroup: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'OrderGroup',
+      default: null,
+    },
   },
   {
     timestamps: true,

@@ -73,13 +73,23 @@ router.post(
 );
 
 // @route   GET /api/orders
-// @desc    Get all orders for user's office
+// @desc    Get all orders for user's office (or user's orders if ?my=true)
 // @access  Private
 router.get('/', auth, async (req, res) => {
   try {
-    const { status } = req.query;
+    const { status, my } = req.query;
 
-    const query = { office: req.user.office._id };
+    let query = { office: req.user.office._id };
+    
+    // If ?my=true, get only orders where user has items
+    if (my === 'true') {
+      // Find all order items for this user
+      const userItems = await OrderItem.find({ user: req.user._id }).select('order');
+      const orderIds = [...new Set(userItems.map(item => item.order.toString()))];
+      
+      query._id = { $in: orderIds };
+    }
+    
     if (status) {
       query.status = status;
     }
@@ -95,6 +105,15 @@ router.get('/', auth, async (req, res) => {
       })
       .sort({ createdAt: -1 });
 
+    // If my=true, filter items to show only user's items
+    if (my === 'true') {
+      orders.forEach(order => {
+        order.items = order.items.filter(item => 
+          item.user && item.user._id.toString() === req.user._id.toString()
+        );
+      });
+    }
+
     res.json({
       success: true,
       data: {
@@ -106,6 +125,69 @@ router.get('/', auth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching orders',
+      error: error.message,
+    });
+  }
+});
+
+// @route   GET /api/orders/my
+// @desc    Get orders where current user has items (alias for ?my=true)
+// @access  Private
+router.get('/my', auth, async (req, res) => {
+  try {
+    const { status } = req.query;
+
+    // Find all order items for this user
+    const userItems = await OrderItem.find({ user: req.user._id }).select('order');
+    const orderIds = [...new Set(userItems.map(item => item.order.toString()))];
+
+    if (orderIds.length === 0) {
+      return res.json({
+        success: true,
+        data: {
+          orders: [],
+        },
+      });
+    }
+
+    let query = {
+      _id: { $in: orderIds },
+      office: req.user.office._id, // Still filter by office for security
+    };
+
+    if (status) {
+      query.status = status;
+    }
+
+    const orders = await Order.find(query)
+      .populate('creator', 'name email')
+      .populate({
+        path: 'items',
+        populate: {
+          path: 'user',
+          select: 'name email',
+        },
+      })
+      .sort({ createdAt: -1 });
+
+    // Filter items to show only user's items
+    orders.forEach(order => {
+      order.items = order.items.filter(item => 
+        item.user && item.user._id.toString() === req.user._id.toString()
+      );
+    });
+
+    res.json({
+      success: true,
+      data: {
+        orders,
+      },
+    });
+  } catch (error) {
+    console.error('Get my orders error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching user orders',
       error: error.message,
     });
   }

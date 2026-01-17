@@ -1,7 +1,9 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
+const passport = require('passport');
 const User = require('../models/User');
+const Office = require('../models/Office');
 const auth = require('../middleware/auth');
 
 const router = express.Router();
@@ -69,6 +71,7 @@ router.post(
             email: user.email,
             office: user.office,
             role: user.role,
+            profilePicture: user.profilePicture,
           },
           token,
         },
@@ -138,6 +141,7 @@ router.post(
             email: user.email,
             office: user.office,
             role: user.role,
+            profilePicture: user.profilePicture,
           },
           token,
         },
@@ -206,6 +210,126 @@ router.put(
       res.status(500).json({
         success: false,
         message: 'Error updating Firebase token',
+        error: error.message,
+      });
+    }
+  }
+);
+
+// @route   GET /api/auth/google
+// @desc    Initiate Google OAuth login
+// @access  Public
+router.get(
+  '/google',
+  passport.authenticate('google', {
+    scope: ['profile', 'email'],
+  })
+);
+
+// @route   GET /api/auth/google/callback
+// @desc    Google OAuth callback
+// @access  Public
+router.get(
+  '/google/callback',
+  passport.authenticate('google', { session: false }),
+  async (req, res) => {
+    try {
+      const profile = req.user;
+
+      // If it's a new user, they need to select an office
+      if (profile.isNew) {
+        // Return user data and request office selection
+        return res.redirect(
+          `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/google/select-office?email=${encodeURIComponent(profile.email)}&name=${encodeURIComponent(profile.name)}&googleId=${profile.googleId}&profilePicture=${encodeURIComponent(profile.profilePicture || '')}`
+        );
+      }
+
+      // Existing user - generate token and redirect
+      const token = generateToken(profile._id);
+      const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/callback?token=${token}`;
+      return res.redirect(redirectUrl);
+    } catch (error) {
+      console.error('Google OAuth callback error:', error);
+      const errorUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/error?message=${encodeURIComponent(error.message)}`;
+      return res.redirect(errorUrl);
+    }
+  }
+);
+
+// @route   POST /api/auth/google/complete
+// @desc    Complete Google OAuth registration (after office selection)
+// @access  Public
+router.post(
+  '/google/complete',
+  [
+    body('googleId').notEmpty().withMessage('Google ID is required'),
+    body('email').isEmail().withMessage('Valid email is required'),
+    body('name').notEmpty().withMessage('Name is required'),
+    body('office').notEmpty().withMessage('Office ID is required'),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation failed',
+          errors: errors.array(),
+        });
+      }
+
+      const { googleId, email, name, office, profilePicture } = req.body;
+
+      // Check if user already exists
+      let user = await User.findOne({ googleId });
+
+      if (!user) {
+        // Check if user exists with email
+        user = await User.findOne({ email });
+
+        if (user) {
+          // Link Google account to existing user
+          user.googleId = googleId;
+          user.profilePicture = profilePicture || user.profilePicture;
+          if (!user.name) user.name = name;
+          await user.save();
+        } else {
+          // Create new user
+          user = await User.create({
+            googleId,
+            email,
+            name,
+            office,
+            profilePicture: profilePicture || null,
+          });
+        }
+      }
+
+      await user.populate('office');
+
+      // Generate token
+      const token = generateToken(user._id);
+
+      res.json({
+        success: true,
+        message: 'Google authentication successful',
+        data: {
+          user: {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            office: user.office,
+            role: user.role,
+            profilePicture: user.profilePicture,
+          },
+          token,
+        },
+      });
+    } catch (error) {
+      console.error('Google OAuth complete error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error completing Google authentication',
         error: error.message,
       });
     }

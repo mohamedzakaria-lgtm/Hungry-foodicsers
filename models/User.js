@@ -18,9 +18,20 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
+      required: function() {
+        return !this.googleId; // Password required only if not using Google OAuth
+      },
       minlength: [6, 'Password must be at least 6 characters'],
       select: false, // Don't return password by default
+    },
+    googleId: {
+      type: String,
+      default: null,
+      sparse: true, // Allows multiple null values
+    },
+    profilePicture: {
+      type: String,
+      default: null,
     },
     office: {
       type: mongoose.Schema.Types.ObjectId,
@@ -46,9 +57,9 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Hash password before saving
+// Hash password before saving (only if password exists and is modified)
 userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
+  if (!this.isModified('password') || !this.password) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });

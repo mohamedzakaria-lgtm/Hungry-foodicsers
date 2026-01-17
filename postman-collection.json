@@ -145,6 +145,56 @@
               "path": ["api", "auth", "firebase-token"]
             }
           }
+        },
+        {
+          "name": "Google OAuth - Initiate Login",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "description": "Initiates Google OAuth login. This will redirect to Google's login page. In Postman, you'll see a redirect response. In a browser, this will open Google login.",
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/google",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "google"]
+            }
+          }
+        },
+        {
+          "name": "Google OAuth - Complete Registration",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.token) {",
+                  "        pm.collectionVariables.set('token', jsonData.data.token);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"googleId\": \"123456789\",\n  \"email\": \"user@foodics.com\",\n  \"name\": \"John Doe\",\n  \"office\": \"{{officeId}}\",\n  \"profilePicture\": \"https://lh3.googleusercontent.com/a/default-user\"\n}"
+            },
+            "description": "Complete Google OAuth registration for new users. This is called after user selects their office. Use the data from Google OAuth callback.",
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/google/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "google", "complete"]
+            }
+          }
         }
       ]
     },
@@ -335,6 +385,48 @@
           }
         },
         {
+          "name": "Get My Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/my",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "my"]
+            },
+            "description": "Get all orders where the current user has items. Shows only the user's items in each order."
+          }
+        },
+        {
+          "name": "Get My Orders by Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/my?status=delivered",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "my"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "delivered"
+                }
+              ]
+            },
+            "description": "Get user's orders filtered by status (open, ordered, delivered, cancelled)"
+          }
+        },
+        {
           "name": "Get Order by ID",
           "request": {
             "method": "GET",
@@ -481,6 +573,180 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "orders", "{{orderId}}", "items", "{{itemId}}"]
             }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Order Groups",
+      "item": [
+        {
+          "name": "Create Order Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ftar\",\n  \"restaurant\": \"Local Bakery\",\n  \"restaurantPhone\": \"+201234567890\",\n  \"schedule\": {\n    \"daysOfWeek\": [1, 2, 3, 4, 5],\n    \"startTime\": \"09:00\",\n    \"endTime\": \"10:00\",\n    \"timezone\": \"Africa/Cairo\"\n  },\n  \"defaultNotes\": \"Daily breakfast order\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/order-groups",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "order-groups"]
+            },
+            "description": "Create a recurring order group. Days: 0=Sunday, 1=Monday, ..., 6=Saturday"
+          }
+        },
+        {
+          "name": "Get All Order Groups",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/order-groups",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "order-groups"]
+            }
+          }
+        },
+        {
+          "name": "Get Active Order Groups",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/order-groups?active=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "order-groups"],
+              "query": [
+                {
+                  "key": "active",
+                  "value": "true"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get My Order Groups",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/order-groups/my",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "order-groups", "my"]
+            }
+          }
+        },
+        {
+          "name": "Get Order Group by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/order-groups/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "order-groups", ":id"]
+            }
+          }
+        },
+        {
+          "name": "Update Order Group",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\",\n  \"isActive\": true,\n  \"schedule\": {\n    \"startTime\": \"09:30\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/order-groups/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "order-groups", ":id"]
+            }
+          }
+        },
+        {
+          "name": "Pause Order Group",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/order-groups/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "order-groups", ":id"]
+            },
+            "description": "Temporarily pause a recurring order group"
+          }
+        },
+        {
+          "name": "Delete Order Group",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/order-groups/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "order-groups", ":id"]
+            },
+            "description": "Permanently delete an order group"
           }
         }
       ]
