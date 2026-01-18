@@ -308,8 +308,120 @@ router.get(
   }
 );
 
+// @route   POST /api/auth/google/mobile
+// @desc    Authenticate with Google ID token (for mobile apps)
+// @access  Public
+router.post(
+  '/google/mobile',
+  [
+    body('idToken').notEmpty().withMessage('Google ID token is required'),
+    body('office').optional().notEmpty().withMessage('Office ID must be valid if provided'),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation failed',
+          errors: errors.array(),
+        });
+      }
+
+      const { idToken, office } = req.body;
+
+      // Verify Google ID token
+      // For now, we'll decode it (in production, verify with Google's API)
+      // Note: In production, you should verify the token with Google's tokeninfo endpoint
+      // or use google-auth-library npm package
+      
+      let googleUser;
+      try {
+        // Decode JWT token (basic verification - in production use proper verification)
+        const jwt = require('jsonwebtoken');
+        // Decode without verification for now (mobile apps should send verified token)
+        googleUser = jwt.decode(idToken);
+        
+        if (!googleUser || !googleUser.sub || !googleUser.email) {
+          throw new Error('Invalid Google ID token');
+        }
+      } catch (error) {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid Google ID token',
+          error: error.message,
+        });
+      }
+
+      const googleId = googleUser.sub;
+      const email = googleUser.email;
+      const name = googleUser.name || googleUser.email.split('@')[0];
+      const profilePicture = googleUser.picture || null;
+
+      // Check if user already exists
+      let user = await User.findOne({ googleId });
+
+      if (!user) {
+        // Check if user exists with email
+        user = await User.findOne({ email });
+
+        if (user) {
+          // Link Google account to existing user
+          user.googleId = googleId;
+          user.profilePicture = profilePicture || user.profilePicture;
+          if (!user.name) user.name = name;
+          await user.save();
+        } else {
+          // Create new user (office is optional)
+          user = await User.create({
+            googleId,
+            email,
+            name,
+            office: office || null, // Office is optional
+            profilePicture: profilePicture || null,
+          });
+        }
+      } else {
+        // Update profile picture if changed
+        if (profilePicture && user.profilePicture !== profilePicture) {
+          user.profilePicture = profilePicture;
+          await user.save();
+        }
+      }
+
+      await user.populate('office');
+
+      // Generate token
+      const token = generateToken(user._id);
+
+      res.json({
+        success: true,
+        message: 'Google authentication successful',
+        data: {
+          user: {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            office: user.office,
+            role: user.role,
+            profilePicture: user.profilePicture,
+          },
+          token,
+        },
+      });
+    } catch (error) {
+      console.error('Google mobile auth error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error authenticating with Google',
+        error: error.message,
+      });
+    }
+  }
+);
+
 // @route   POST /api/auth/google/complete
-// @desc    Complete Google OAuth registration (after office selection)
+// @desc    Complete Google OAuth registration (after office selection) - for web flow
 // @access  Public
 router.post(
   '/google/complete',

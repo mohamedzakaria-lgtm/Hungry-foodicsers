@@ -215,12 +215,50 @@
               "mode": "raw",
               "raw": "{\n  \"googleId\": \"123456789\",\n  \"email\": \"user@foodics.com\",\n  \"name\": \"John Doe\",\n  \"office\": \"{{officeId}}\",\n  \"profilePicture\": \"https://lh3.googleusercontent.com/a/default-user\"\n}"
             },
-            "description": "Complete Google OAuth registration for new users. This is called after user selects their office. Use the data from Google OAuth callback.",
+            "description": "Complete Google OAuth registration for new users (Web flow). This is called after user selects their office. Use the data from Google OAuth callback.",
             "url": {
               "raw": "{{baseUrl}}/api/auth/google/complete",
               "host": ["{{baseUrl}}"],
               "path": ["api", "auth", "google", "complete"]
             }
+          }
+        },
+        {
+          "name": "Google OAuth - Mobile (React Native)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.data && jsonData.data.token) {",
+                  "        pm.collectionVariables.set('token', jsonData.data.token);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"GOOGLE_ID_TOKEN_FROM_MOBILE_APP\",\n  \"office\": \"{{officeId}}\"\n}",
+              "description": "For React Native apps. Get ID token using @react-native-google-signin/google-signin, then send it here. Office is optional."
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/google/mobile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "google", "mobile"]
+            },
+            "description": "Authenticate with Google ID token from mobile app (React Native). Use this endpoint instead of the web redirect flow. Get ID token using @react-native-google-signin/google-signin library."
           }
         }
       ]
