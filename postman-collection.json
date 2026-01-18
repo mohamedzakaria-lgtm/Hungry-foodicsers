@@ -59,7 +59,8 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"test@foodics.com\",\n  \"password\": \"password123\",\n  \"office\": \"{{officeId}}\"\n}"
+              "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"test@foodics.com\",\n  \"password\": \"password123\",\n  \"office\": \"{{officeId}}\"\n}",
+              "description": "Office is optional - can be set later using PUT /api/auth/office"
             },
             "url": {
               "raw": "{{baseUrl}}/api/auth/register",
@@ -147,6 +148,32 @@
           }
         },
         {
+          "name": "Update Office",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"office\": \"{{officeId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/office",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "office"]
+            },
+            "description": "Update user's office. Useful if user registered without office or wants to change office."
+          }
+        },
+        {
           "name": "Google OAuth - Initiate Login",
           "request": {
             "method": "GET",
@@ -205,17 +232,13 @@
           "name": "Get All Offices",
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/offices",
               "host": ["{{baseUrl}}"],
               "path": ["api", "offices"]
-            }
+            },
+            "description": "Public endpoint - no authentication required. Users can see offices before registering."
           }
         },
         {

@@ -24,7 +24,7 @@ router.post(
     body('name').trim().notEmpty().withMessage('Name is required'),
     body('email').isEmail().withMessage('Please provide a valid email'),
     body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-    body('office').notEmpty().withMessage('Office ID is required'),
+    body('office').optional().notEmpty().withMessage('Office ID must be valid if provided'),
   ],
   async (req, res) => {
     try {
@@ -48,12 +48,12 @@ router.post(
         });
       }
 
-      // Create user
+      // Create user (office is optional)
       const user = await User.create({
         name,
         email,
         password,
-        office,
+        office: office || null, // Office is optional
       });
 
       await user.populate('office');
@@ -216,6 +216,58 @@ router.put(
   }
 );
 
+// @route   PUT /api/auth/office
+// @desc    Update user's office
+// @access  Private
+router.put(
+  '/office',
+  auth,
+  [body('office').notEmpty().withMessage('Office ID is required')],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation failed',
+          errors: errors.array(),
+        });
+      }
+
+      const { office } = req.body;
+      const Office = require('../models/Office');
+
+      // Verify office exists
+      const officeExists = await Office.findById(office);
+      if (!officeExists) {
+        return res.status(404).json({
+          success: false,
+          message: 'Office not found',
+        });
+      }
+
+      req.user.office = office;
+      await req.user.save();
+      await req.user.populate('office');
+
+      res.json({
+        success: true,
+        message: 'Office updated successfully',
+        data: {
+          user: req.user,
+        },
+      });
+    } catch (error) {
+      console.error('Update office error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error updating office',
+        error: error.message,
+      });
+    }
+  }
+);
+
 // @route   GET /api/auth/google
 // @desc    Initiate Google OAuth login
 // @access  Public
@@ -265,7 +317,7 @@ router.post(
     body('googleId').notEmpty().withMessage('Google ID is required'),
     body('email').isEmail().withMessage('Valid email is required'),
     body('name').notEmpty().withMessage('Name is required'),
-    body('office').notEmpty().withMessage('Office ID is required'),
+    body('office').optional().notEmpty().withMessage('Office ID must be valid if provided'),
   ],
   async (req, res) => {
     try {
@@ -294,12 +346,12 @@ router.post(
           if (!user.name) user.name = name;
           await user.save();
         } else {
-          // Create new user
+          // Create new user (office is optional)
           user = await User.create({
             googleId,
             email,
             name,
-            office,
+            office: office || null, // Office is optional
             profilePicture: profilePicture || null,
           });
         }

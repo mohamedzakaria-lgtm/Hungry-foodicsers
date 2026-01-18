@@ -35,6 +35,14 @@ router.post(
 
       const { restaurant, restaurantPhone, notes } = req.body;
 
+      // Check if user has an office
+      if (!req.user.office || !req.user.office._id) {
+        return res.status(400).json({
+          success: false,
+          message: 'You must select an office before creating orders. Please update your profile.',
+        });
+      }
+
       // Create order
       const order = await Order.create({
         creator: req.user._id,
@@ -79,17 +87,64 @@ router.get('/', auth, async (req, res) => {
   try {
     const { status, my } = req.query;
 
-    let query = { office: req.user.office._id };
-    
-    // If ?my=true, get only orders where user has items
+    // If ?my=true, get only orders where user has items (works even without office)
     if (my === 'true') {
       // Find all order items for this user
       const userItems = await OrderItem.find({ user: req.user._id }).select('order');
       const orderIds = [...new Set(userItems.map(item => item.order.toString()))];
       
-      query._id = { $in: orderIds };
+      if (orderIds.length === 0) {
+        return res.json({
+          success: true,
+          data: {
+            orders: [],
+          },
+        });
+      }
+
+      let query = { _id: { $in: orderIds } };
+      if (status) {
+        query.status = status;
+      }
+
+      const orders = await Order.find(query)
+        .populate('creator', 'name email')
+        .populate({
+          path: 'items',
+          populate: {
+            path: 'user',
+            select: 'name email',
+          },
+        })
+        .sort({ createdAt: -1 });
+
+      // Filter items to show only user's items
+      orders.forEach(order => {
+        order.items = order.items.filter(item => 
+          item.user && item.user._id.toString() === req.user._id.toString()
+        );
+      });
+
+      return res.json({
+        success: true,
+        data: {
+          orders,
+        },
+      });
     }
-    
+
+    // For office orders, check if user has an office
+    if (!req.user.office || !req.user.office._id) {
+      return res.json({
+        success: true,
+        data: {
+          orders: [],
+          message: 'Please select an office to view orders',
+        },
+      });
+    }
+
+    let query = { office: req.user.office._id };
     if (status) {
       query.status = status;
     }
@@ -152,8 +207,12 @@ router.get('/my', auth, async (req, res) => {
 
     let query = {
       _id: { $in: orderIds },
-      office: req.user.office._id, // Still filter by office for security
     };
+
+    // If user has an office, filter by office for security
+    if (req.user.office && req.user.office._id) {
+      query.office = req.user.office._id;
+    }
 
     if (status) {
       query.status = status;
@@ -216,12 +275,15 @@ router.get('/:id', auth, async (req, res) => {
       });
     }
 
-    // Check if user is in the same office
-    if (order.office._id.toString() !== req.user.office._id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied. You are not in the same office',
-      });
+    // Allow users without office to view orders (they can select office later)
+    // If user has an office, verify they're in the same office
+    if (req.user.office && req.user.office._id) {
+      if (order.office._id.toString() !== req.user.office._id.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied. You are not in the same office',
+        });
+      }
     }
 
     res.json({
@@ -271,13 +333,18 @@ router.post(
         });
       }
 
-      // Check if user is in the same office
-      if (order.office._id.toString() !== req.user.office._id.toString()) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied. You are not in the same office',
-        });
+      // Allow users without office to add items (they can select office later)
+      // If user has an office, verify they're in the same office
+      if (req.user.office && req.user.office._id) {
+        if (order.office._id.toString() !== req.user.office._id.toString()) {
+          return res.status(403).json({
+            success: false,
+            message: 'Access denied. You are not in the same office',
+          });
+        }
       }
+      // If user doesn't have an office, allow them to add items
+      // They can update their office later to match the order's office
 
       // Check if order is still open
       if (order.status !== 'open') {

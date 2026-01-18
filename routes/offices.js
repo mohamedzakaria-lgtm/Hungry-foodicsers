@@ -6,8 +6,8 @@ const router = express.Router();
 
 // @route   GET /api/offices
 // @desc    Get all offices
-// @access  Private
-router.get('/', auth, async (req, res) => {
+// @access  Public
+router.get('/', async (req, res) => {
   try {
     const offices = await Office.find({ isActive: true }).sort({ name: 1 });
 

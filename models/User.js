@@ -36,7 +36,7 @@ const userSchema = new mongoose.Schema(
     office: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Office',
-      required: [true, 'Office is required'],
+      default: null, // Office is optional - can be set later
     },
     firebaseToken: {
       type: String,
